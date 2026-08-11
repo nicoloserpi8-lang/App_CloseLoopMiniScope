@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>NPN Miniscope</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+  <div class="titlebar">
+    <div class="titlebar-left">
+      <span class="app-icon"></span>
+      <span class="app-title">NPN Miniscope</span>
+    </div>
+    <div class="titlebar-right">
+      <span class="tb-btn">&#8211;</span>
+      <span class="tb-btn">&#9633;</span>
+      <span class="tb-btn tb-close">&times;</span>
+    </div>
+  </div>
+
+  <div class="main-layout">
+
+    <div class="sidebar">
+
+      <!-- OPTICS & CALIBRATION -->
+      <div class="panel" id="panel-optics">
+        <div class="panel-header">
+          <span>Optics &amp; calibration</span>
+          <span class="panel-controls"><span class="pc-btn">&#8863;</span><span class="pc-btn">&times;</span></span>
+        </div>
+        <div class="panel-body">
+          <div class="field-row">
+            <label>Lens L1 (mm)</label>
+            <div class="spin-input">
+              <input type="number" id="l1" step="0.5" value="50.0">
+            </div>
+          </div>
+          <div class="field-row">
+            <label>Lens L2 (mm)</label>
+            <div class="spin-input">
+              <input type="number" id="l2" step="0.5" value="30.0">
+            </div>
+          </div>
+          <div class="field-row">
+            <label>Fibre core (&micro;m)</label>
+            <div class="spin-input">
+              <input type="number" id="fiber" step="10" value="1500.0">
+            </div>
+          </div>
+
+          <div class="info-text">
+            <div>Magnification: <span id="mag">-</span>x</div>
+            <div>MicroLED pitch: <span id="pitch">-</span> &micro;m</div>
+            <div>Pixels inside fibre: <span id="fiberpx">-</span></div>
+          </div>
+
+          <div class="btn-row">
+            <button id="btn-calibrate" class="btn">Calibrate</button>
+            <span class="status-text" id="calib-status">Uncalibrated (using fallback mapping)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- STIMULATION -->
+      <div class="panel" id="panel-stim">
+        <div class="panel-header">
+          <span>Stimulation</span>
+          <span class="panel-controls"><span class="pc-btn">&#8863;</span><span class="pc-btn">&times;</span></span>
+        </div>
+        <div class="panel-body">
+          <div class="field-row">
+            <label>MicroLED px / neuron</label>
+            <div class="spin-input">
+              <input type="number" id="target-px" step="5" value="120">
+            </div>
+          </div>
+          <div class="field-row">
+            <label>Frequency (Hz)</label>
+            <div class="spin-input">
+              <input type="number" id="freq" step="0.05" value="0.10">
+            </div>
+          </div>
+          <div class="field-row">
+            <label>Duty cycle (%)</label>
+            <div class="spin-input">
+              <input type="number" id="duty" step="5" value="50.0">
+            </div>
+          </div>
+
+          <div class="info-text">
+            <div>Shutters: <span id="shutter-status">Blue only</span></div>
+          </div>
+
+          <div class="btn-row two-btns">
+            <button id="btn-stim" class="btn">Start stimulation</button>
+            <button id="btn-clear-neurons" class="btn">Clear neurons</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- MICROLED PREVIEW -->
+      <div class="panel" id="panel-microled">
+        <div class="panel-header">
+          <span>MicroLED</span>
+          <span class="panel-controls"><span class="pc-btn">&#8863;</span><span class="pc-btn">&times;</span></span>
+        </div>
+        <div class="panel-body">
+          <div class="microled-box">
+            <img id="jdb-img" src="/jdb_feed" alt="MicroLED pattern">
+          </div>
+          <div class="active-text">Active: <span id="active-px">0</span> / <span id="max-px">-</span> px</div>
+
+          <div class="field-row">
+            <label>Output</label>
+            <select id="output-select">
+              <option value="virtual">Virtual (no projector)</option>
+              <option value="hardware">Hardware (HDMI window)</option>
+            </select>
+          </div>
+          <div class="status-text" id="output-label">Virtual MicroLED</div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="video-area">
+      <img id="cmos-img" src="/video_feed" alt="CMOS live feed">
+      <svg id="roi-preview" class="roi-preview"></svg>
+    </div>
+  </div>
+
+  <div class="statusbar">
+    <div class="status-left" id="status-left">Virtual Miniscope (phantom) &mdash; neurons: 0 &mdash; active MicroLED pixels: 0 / 0</div>
+    <div class="status-right">
+      <span class="hint">Click = raggio auto &middot; Trascina = raggio manuale &middot; Tasto destro = elimina &middot; Rotella = zoom</span>
+      <button id="btn-radius-minus" class="btn small">Raggio &minus;</button>
+      <button id="btn-radius-plus" class="btn small">Raggio +</button>
+      <button id="btn-freeze" class="btn small">Freeze</button>
+      <button id="btn-reset-zoom" class="btn small">Reset zoom</button>
+      <span id="devices-status">Devices ready</span>
+    </div>
+  </div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
