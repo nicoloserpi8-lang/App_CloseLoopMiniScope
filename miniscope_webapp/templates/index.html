@@ -124,9 +124,10 @@
 
     </div>
 
-    <div class="video-area">
-      <img id="cmos-img" src="/video_feed" alt="CMOS live feed">
-      <svg id="roi-preview" class="roi-preview"></svg>
+    <!-- AREA VIDEO CMOS -->
+    <div class="video-area" style="position: relative; display: inline-block;">
+      <img id="cmos-img" src="/video_feed" alt="CMOS live feed" style="display: block; width: 100%; height: auto;">
+      <svg id="roi-preview" class="roi-preview" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></svg>
     </div>
   </div>
 
@@ -134,14 +135,16 @@
     <div class="status-left" id="status-left">Virtual Miniscope (phantom) &mdash; neurons: 0 &mdash; active MicroLED pixels: 0 / 0</div>
     <div class="status-right">
       <span class="hint">Click = raggio auto &middot; Trascina = raggio manuale &middot; Tasto destro = elimina &middot; Rotella = zoom</span>
-      <button id="btn-radius-minus" class="btn small">Raggio &minus;</button>
-      <button id="btn-radius-plus" class="btn small">Raggio +</button>
+
+      <span id="radius-display" style="font-weight: bold; padding: 0 6px; color: #00ff00;">Raggio CMOS: -- px</span>
+
       <button id="btn-freeze" class="btn small">Freeze</button>
       <button id="btn-reset-zoom" class="btn small">Reset zoom</button>
       <span id="devices-status">Devices ready</span>
     </div>
   </div>
 
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+  <!-- UNICO SCRIPT PER LA GESTIONE COMPLETA DELL'INTERFACCIA -->
+  <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

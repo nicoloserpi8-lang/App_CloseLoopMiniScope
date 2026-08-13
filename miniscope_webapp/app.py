@@ -26,9 +26,8 @@ from SHUTTER_CONTROL import ShutterController
 
 app = Flask(__name__)
 
-
 # ============================================================
-#  SYSTEM STATE  (equivalente alle variabili globali di MAIN.py)
+#  SYSTEM STATE
 # ============================================================
 class MiniscopeSystem:
     def __init__(self):
@@ -37,7 +36,7 @@ class MiniscopeSystem:
         self.mode_name = "PC"          # "PC" or "RIG"
         self.cam_w, self.cam_h = 640, 480
         self.cap = None
-        self.phantom_mode = True       # True finché non troviamo una camera reale
+        self.phantom_mode = True
         self._phantom_blobs = self._make_phantom_blobs()
 
         self.optics = OpticsConfig(mode=self.mode_name)
@@ -48,12 +47,12 @@ class MiniscopeSystem:
             self.optics.get_valid_fiber_mask()
         )
 
-        # ROI / neuroni selezionati (x_cmos, y_cmos, raggio_px)
+        # ROI / selected neurons (x_cmos, y_cmos, raggio_px)
         self.selected_rois = []
         self.target_microled_pixels = 120
         self.current_cmos_radius = 12
 
-        # Zoom / pan (stessa logica di screen_to_cmos / apply_zoom_crop)
+        # Zoom / pan
         self.zoom_scale = 1.0
         self.zoom_center_x = None
         self.zoom_center_y = None
@@ -68,7 +67,7 @@ class MiniscopeSystem:
         self.M_led2cam = None
         self.calibrated = False
 
-        # Output MicroLED: "virtual" (solo preview browser) o "hardware" (finestra HDMI reale)
+        # Output MicroLED: "virtual" (solo preview browser) o "hardware"
         self.output_mode = "virtual"
         self.jdb_win_name = "MICROLED_DISPLAY_HDMI"
         self._hdmi_window_open = False
@@ -256,13 +255,11 @@ class MiniscopeSystem:
             real_x, real_y = self.screen_to_cmos(x_disp, y_disp)
             real_x, real_y = int(real_x), int(real_y)
             if 0 <= real_x < self.cam_w and 0 <= real_y < self.cam_h:
+                # Usa sempre il raggio calcolato in base al target di pixel MicroLED
                 self.selected_rois.append((real_x, real_y, int(self.current_cmos_radius)))
 
     def add_roi_drag(self, x1_disp, y1_disp, x2_disp, y2_disp):
-        """Equivalente al drag del vecchio ROI_Microled_selector.py:
-        il centro è il punto di partenza del click, il raggio è la distanza
-        (in coordinate CMOS reali) fino al punto di rilascio del mouse.
-        Aggiorna anche il raggio manuale di default per i click successivi."""
+        """Calcola il raggio in base al trascinamento per questa specifica ROI."""
         with self.lock:
             cx, cy = self.screen_to_cmos(x1_disp, y1_disp)
             ex, ey = self.screen_to_cmos(x2_disp, y2_disp)
@@ -270,7 +267,6 @@ class MiniscopeSystem:
             radius = max(4, int(np.hypot(ex - cx, ey - cy)))
             if 0 <= cx < self.cam_w and 0 <= cy < self.cam_h:
                 self.selected_rois.append((cx, cy, radius))
-                self.manual_radius = radius
 
     def bump_manual_radius(self, delta):
         with self.lock:
@@ -472,6 +468,7 @@ class MiniscopeSystem:
     def status_dict(self):
         with self.lock:
             return {
+
                 "mode": self.mode_name,
                 "phantom": bool(self.phantom_mode),
                 "cam_w": int(self.cam_w),
@@ -490,6 +487,7 @@ class MiniscopeSystem:
                 "freq_hz": float(self.freq_hz),
                 "duty_pct": float(self.duty_cycle_pct),
                 "is_stimulating": bool(self.is_stimulating),
+                "current_cmos_radius": int(getattr(self, "current_cmos_radius", 12)),
                 "shutter_status": getattr(self, "shutter_status", "Blue only"),
                 "neurons": int(len(self.selected_rois)),
                 "active_led_pixels": int(getattr(self, "active_led_pixels", 0)),
