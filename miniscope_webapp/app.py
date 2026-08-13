@@ -102,6 +102,8 @@ class MiniscopeSystem:
             target_w, target_h = 608, 608
             cam_index = find_miniscope_cam_index_smart(mode=self.mode_name)
 
+        self.cam_index_used = cam_index
+
         cap = cv2.VideoCapture(cam_index, cv2.CAP_DSHOW)
         cap.set(cv2.CAP_PROP_FRAME_WIDTH, target_w)
         cap.set(cv2.CAP_PROP_FRAME_HEIGHT, target_h)
@@ -122,6 +124,7 @@ class MiniscopeSystem:
             self.cap = None
             self.cam_w, self.cam_h = target_w, target_h
             self.phantom_mode = True
+            self.cam_resolution_match = False
 
         self.optics.set_mode(self.mode_name)
 
@@ -495,6 +498,9 @@ class MiniscopeSystem:
                 "zoom_scale": round(float(self.zoom_scale), 2),
                 "frozen": bool(getattr(self, "frozen", False)),
                 "manual_radius": int(getattr(self, "manual_radius", self.current_cmos_radius)),
+                "cam_index_used": int(getattr(self, "cam_index_used", -1)),
+                "cam_resolution_match": bool(getattr(self, "cam_resolution_match", False)),
+                "hdmi_window_open": bool(self._hdmi_window_open),
             }
 
 
@@ -655,6 +661,21 @@ def set_camera_mode():
     system.set_camera_mode(data["mode"])
     return jsonify(system.status_dict())
 
+@app.route("/api/monitors")
+def monitors():
+    try:
+        from screeninfo import get_monitors
+        mons = get_monitors()
+        return jsonify({
+            "ok": True,
+            "count": len(mons),
+            "monitors": [
+                {"index": i, "width": m.width, "height": m.height, "x": m.x, "y": m.y, "primary": m.is_primary}
+                for i, m in enumerate(mons)
+            ],
+        })
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)})
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)

@@ -10,6 +10,17 @@ async function postJSON(url, body) {
 }
 
 function applyStatus(s) {
+  let camLine;
+  if (s.phantom) {
+    camLine = `⚠️ Nessuna camera reale trovata (indice tentato: ${s.cam_index_used}) — modalità PHANTOM attiva.`;
+  } else if (!s.cam_resolution_match) {
+    camLine = `⚠️ Camera trovata all'indice ${s.cam_index_used} ma risoluzione ${s.cam_w}x${s.cam_h} inattesa.`;
+  } else {
+    camLine = `✅ Camera OK — indice ${s.cam_index_used}, risoluzione ${s.cam_w}x${s.cam_h}.`;
+  }
+  document.getElementById("cam-status-line").textContent = camLine;
+  if (document.activeElement !== document.getElementById("camera-mode-select"))
+  document.getElementById("camera-mode-select").value = s.mode;
   if ($("mag")) $("mag").textContent = s.magnification.toFixed(3);
   if ($("pitch")) $("pitch").textContent = `${s.pitch_x.toFixed(2)} x ${s.pitch_y.toFixed(2)}`;
   if ($("fiberpx")) $("fiberpx").textContent = `${s.pixels_inside_fiber} (${s.fiber_pct}%)`;
@@ -84,6 +95,24 @@ async function refreshStatus() {
 }
 setInterval(refreshStatus, 500);
 refreshStatus();
+
+document.getElementById("camera-mode-select").addEventListener("change", async () => {
+  const res = await fetch("/api/set_camera_mode", {
+    method: "POST", headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({ mode: document.getElementById("camera-mode-select").value })
+  });
+  applyStatus(await res.json());
+});
+
+document.getElementById("btn-check-monitors").addEventListener("click", async () => {
+  const res = await fetch("/api/monitors");
+  const data = await res.json();
+  const el = document.getElementById("monitors-status");
+  if (!data.ok) { el.textContent = `Errore: ${data.error}`; return; }
+  el.textContent = data.count < 2
+    ? `⚠️ Solo ${data.count} monitor rilevato/i.`
+    : `✅ ${data.count} monitor rilevati.`;
+});
 
 // ---------------- Optics & Calibration ----------------
 function debounce(fn, ms) {

@@ -23,6 +23,23 @@
 
     <div class="sidebar">
 
+      <div class="panel" id="panel-camera">
+        <div class="panel-header"><span>Camera</span></div>
+        <div class="panel-body">
+            <div class="field-row">
+            <label>Hardware mode</label>
+            <select id="camera-mode-select">
+                <option value="PC">PC Webcam (640x480)</option>
+                <option value="RIG">Miniscope RIG (608x608)</option>
+            </select>
+            </div>
+            <div class="info-text"><div id="cam-status-line">-</div></div>
+            <div class="btn-row">
+            <button id="btn-check-monitors" class="btn small">Check monitors</button>
+            <span class="status-text" id="monitors-status"></span>
+            </div>
+        </div>
+      </div>
       <!-- OPTICS & CALIBRATION -->
       <div class="panel" id="panel-optics">
         <div class="panel-header">
