@@ -376,11 +376,8 @@ class MiniscopeSystem:
                 try:
                     jdb_x, jdb_y, disp_w, disp_h = get_jdb_monitor_coords(jdb_monitor_index=1)
                     cv2.namedWindow(self.jdb_win_name, cv2.WINDOW_NORMAL)
-                    w, h = 380, 500
-                    cx = jdb_x + (disp_w - w) // 2
-                    cy = jdb_y + (disp_h - h) // 2
-                    cv2.moveWindow(self.jdb_win_name, cx, cy)
-                    cv2.resizeWindow(self.jdb_win_name, w, h)
+                    cv2.moveWindow(self.jdb_win_name, jdb_x, jdb_y)
+                    cv2.setWindowProperty(self.jdb_win_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     self._hdmi_window_open = True
                 except Exception as e:
                     print(f"[WARN] Impossibile aprire finestra HDMI reale: {e}")
