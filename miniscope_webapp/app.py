@@ -471,8 +471,7 @@ class MiniscopeSystem:
                 if self.manual_calib_start_requested:
                     self.manual_calib_start_requested = False
                     self._ensure_hdmi_window()
-                    pattern, led_pts = self.calibrator.generate_calibration_pattern("blue")
-                    self._manual_calib_pattern = pattern
+                    _, led_pts = self.calibrator.generate_calibration_pattern("blue")
                     self._manual_calib_led_pts = led_pts
                     self.manual_calib_points = []
                     self.manual_calib_active = True
@@ -527,8 +526,13 @@ class MiniscopeSystem:
                 display_canvas = self.apply_zoom_crop(canvas)
 
                 if self.manual_calib_active:
-                    jdb_frame = self._manual_calib_pattern
-                    self.shutter_status = "Manual calibration pattern"
+                    idx_to_show = len(self.manual_calib_points)
+                    pattern = np.zeros((self.optics.jdb_h_px, self.optics.jdb_w_px, 3), dtype=np.uint8)
+                    if idx_to_show < 4:
+                        pt = tuple(int(v) for v in self._manual_calib_led_pts[idx_to_show])
+                        cv2.circle(pattern, pt, 25, (255, 0, 0), -1)
+                    jdb_frame = pattern
+                    self.shutter_status = f"Manual calibration: point {idx_to_show + 1}/4"
                 elif self.is_stimulating:
                     period = 1.0 / self.freq_hz if self.freq_hz > 0 else 1.0
                     t_red_on = period * (self.duty_cycle_pct / 100.0)
