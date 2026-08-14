@@ -66,6 +66,11 @@ class MiniscopeSystem:
         self.M_cam2led = None
         self.M_led2cam = None
         self.calibrated = False
+        self.manual_calib_active = False
+        self.manual_calib_start_requested = False
+        self.manual_calib_points = []
+        self._manual_calib_led_pts = None
+        self._manual_calib_pattern = None
         self.calibration_requested = False
         self.calibrating = False
 
@@ -354,6 +359,32 @@ class MiniscopeSystem:
             self.zoom_center_x = max(0, min(self.cam_w, self.zoom_center_x - dx / self.zoom_scale))
             self.zoom_center_y = max(0, min(self.cam_h, self.zoom_center_y - dy / self.zoom_scale))
 
+    def start_manual_calibration(self):
+        with self.lock:
+            self.manual_calib_start_requested = True
+
+    def cancel_manual_calibration(self):
+        with self.lock:
+            self.manual_calib_active = False
+            self.manual_calib_points = []
+
+    def add_manual_calib_point(self, x_disp, y_disp):
+        with self.lock:
+            if not self.manual_calib_active:
+                return
+            rx, ry = self.screen_to_cmos(x_disp, y_disp)
+            rx, ry = int(rx), int(ry)
+            self.manual_calib_points.append((rx, ry))
+            if len(self.manual_calib_points) >= 4:
+                pts_cam = np.float32(self.manual_calib_points[:4])
+                pts_led = self._manual_calib_led_pts
+                self.M_cam2led = cv2.getPerspectiveTransform(pts_cam, pts_led)
+                self.M_led2cam = cv2.getPerspectiveTransform(pts_led, pts_cam)
+                self._update_cmos_radius()
+                self.calibrated = True
+                self.manual_calib_active = False
+                self.manual_calib_points = []
+
     def run_calibration(self):
         with self.lock:
             if self.phantom_mode or self.cap is None:
@@ -437,6 +468,14 @@ class MiniscopeSystem:
                     except Exception as e:
                         print(f"[CALIBRATION ERROR] {e}")
                     self.calibrating = False
+                if self.manual_calib_start_requested:
+                    self.manual_calib_start_requested = False
+                    self._ensure_hdmi_window()
+                    pattern, led_pts = self.calibrator.generate_calibration_pattern("blue")
+                    self._manual_calib_pattern = pattern
+                    self._manual_calib_led_pts = led_pts
+                    self.manual_calib_points = []
+                    self.manual_calib_active = True
                 self._ensure_homography()
                 gray = self.read_frame_gray()
                 cam_w, cam_h = self.cam_w, self.cam_h
@@ -467,6 +506,14 @@ class MiniscopeSystem:
                     cv2.putText(canvas, lbl, (rx - 20, ry + rr + 15),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 255, 0), 1)
 
+                if self.manual_calib_active:
+                    for idx, (px, py) in enumerate(self.manual_calib_points):
+                        cv2.circle(canvas, (px, py), 6, (0, 255, 255), -1)
+                        cv2.putText(canvas, f"P{idx + 1}", (px + 8, py - 8),
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 2)
+                    cv2.putText(canvas, f"MANUAL CALIB: click point {len(self.manual_calib_points) + 1}/4",
+                                (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 255, 255), 2)
+
                 cmos_stim_area = cv2.warpPerspective(
                     microled_pattern, self.M_led2cam, (cam_w, cam_h), flags=cv2.INTER_NEAREST
                 )
@@ -479,8 +526,10 @@ class MiniscopeSystem:
 
                 display_canvas = self.apply_zoom_crop(canvas)
 
-                # scelta pattern JDB corrente (blink stimolazione)
-                if self.is_stimulating:
+                if self.manual_calib_active:
+                    jdb_frame = self._manual_calib_pattern
+                    self.shutter_status = "Manual calibration pattern"
+                elif self.is_stimulating:
                     period = 1.0 / self.freq_hz if self.freq_hz > 0 else 1.0
                     t_red_on = period * (self.duty_cycle_pct / 100.0)
                     time_in_cycle = time.time() % period
@@ -572,6 +621,8 @@ class MiniscopeSystem:
                 "cam_resolution_match": bool(getattr(self, "cam_resolution_match", False)),
                 "hdmi_window_open": bool(self._hdmi_window_open),
                 "calibrating": bool(getattr(self, "calibrating", False)),
+                "manual_calib_active": bool(self.manual_calib_active),
+                "manual_calib_points_count": len(self.manual_calib_points),
             }
 
 
@@ -745,6 +796,24 @@ def monitors():
         })
     except Exception as e:
         return jsonify({"ok": False, "error": str(e)})
+
+@app.route("/api/start_manual_calibration", methods=["POST"])
+def start_manual_calibration():
+    system.start_manual_calibration()
+    return jsonify(system.status_dict())
+
+
+@app.route("/api/cancel_manual_calibration", methods=["POST"])
+def cancel_manual_calibration():
+    system.cancel_manual_calibration()
+    return jsonify(system.status_dict())
+
+
+@app.route("/api/add_manual_calib_point", methods=["POST"])
+def add_manual_calib_point():
+    data = request.get_json()
+    system.add_manual_calib_point(float(data["x"]), float(data["y"]))
+    return jsonify(system.status_dict())
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)

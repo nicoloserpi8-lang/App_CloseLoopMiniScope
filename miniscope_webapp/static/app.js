@@ -1,3 +1,4 @@
+let manualCalibActive = false;
 const $ = (id) => document.getElementById(id);
 
 async function postJSON(url, body) {
@@ -10,6 +11,11 @@ async function postJSON(url, body) {
 }
 
 function applyStatus(s) {
+  manualCalibActive = s.manual_calib_active;
+  $("btn-cancel-manual-calib").style.display = manualCalibActive ? "inline-block" : "none";
+  $("manual-calib-status").textContent = manualCalibActive
+  ? `Clicca il punto ${s.manual_calib_points_count + 1} di 4 sul video`
+  : "";
   let camLine;
   if (s.phantom) {
     camLine = `⚠️ Nessuna camera reale trovata (indice tentato: ${s.cam_index_used}) — modalità PHANTOM attiva.`;
@@ -135,6 +141,15 @@ const sendFiber = debounce(() => {
 }, 350);
 if ($("fiber")) $("fiber").addEventListener("input", sendFiber);
 
+$("btn-manual-calib").addEventListener("click", async () => {
+  const s = await postJSON("/api/start_manual_calibration", {});
+  applyStatus(s);
+});
+$("btn-cancel-manual-calib").addEventListener("click", async () => {
+  const s = await postJSON("/api/cancel_manual_calibration", {});
+  applyStatus(s);
+});
+
 if ($("btn-calibrate")) {
   $("btn-calibrate").addEventListener("click", async () => {
   $("btn-calibrate").disabled = true;
@@ -223,11 +238,19 @@ if (cmosImg) {
   cmosImg.addEventListener("dragstart", (e) => e.preventDefault()); // Previene il drag nativo
 
   cmosImg.addEventListener("mousedown", (evt) => {
+    if (manualCalibActive) return;
     if (evt.button !== 0 || evt.shiftKey) return;
     const rect = cmosImg.getBoundingClientRect();
     dragStartScreen = { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
     dragStartImg = relativeCoords(evt);
     isDraggingRoi = true;
+  });
+
+  cmosImg.addEventListener("click", async (evt) => {
+    if (!manualCalibActive) return;
+    const { x, y } = relativeCoords(evt);
+    const s = await postJSON("/api/add_manual_calib_point", { x, y });
+    applyStatus(s);
   });
 
   cmosImg.addEventListener("contextmenu", async (evt) => {
