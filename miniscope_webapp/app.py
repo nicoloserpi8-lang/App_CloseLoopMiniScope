@@ -372,13 +372,17 @@ class MiniscopeSystem:
     def set_output_mode(self, mode):
         with self.lock:
             self.output_mode = "hardware" if mode == "hardware" else "virtual"
+            print(
+                f"[OUTPUT] Richiesta ricevuta: mode='{mode}' -> output_mode='{self.output_mode}', hdmi_gia_aperta={self._hdmi_window_open}")  # NUOVO
             if self.output_mode == "hardware" and not self._hdmi_window_open:
                 try:
                     jdb_x, jdb_y, disp_w, disp_h = get_jdb_monitor_coords(jdb_monitor_index=1)
+                    print(f"[OUTPUT] Monitor 2 rilevato: x={jdb_x}, y={jdb_y}, w={disp_w}, h={disp_h}")  # NUOVO
                     cv2.namedWindow(self.jdb_win_name, cv2.WINDOW_NORMAL)
                     cv2.moveWindow(self.jdb_win_name, jdb_x, jdb_y)
                     cv2.setWindowProperty(self.jdb_win_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                     self._hdmi_window_open = True
+                    print("[OUTPUT] Finestra HDMI aperta con successo")  # NUOVO
                 except Exception as e:
                     print(f"[WARN] Impossibile aprire finestra HDMI reale: {e}")
                     self.output_mode = "virtual"
@@ -448,6 +452,9 @@ class MiniscopeSystem:
                     self.shutter_status = "Blue only"
 
                 if self.output_mode == "hardware" and self._hdmi_window_open:
+                    if not getattr(self, "_hdmi_debug_printed", False):
+                        print(f"[OUTPUT] Primo invio frame a schermo 2, shape={jdb_frame.shape}")  # NUOVO
+                        self._hdmi_debug_printed = True
                     try:
                         cv2.imshow(self.jdb_win_name, jdb_frame)
                         cv2.waitKey(1)
