@@ -137,11 +137,22 @@ if ($("fiber")) $("fiber").addEventListener("input", sendFiber);
 
 if ($("btn-calibrate")) {
   $("btn-calibrate").addEventListener("click", async () => {
-    $("btn-calibrate").textContent = "Calibrating…";
-    const s = await postJSON("/api/calibrate", {});
+  $("btn-calibrate").disabled = true;
+  $("btn-calibrate").textContent = "Calibrating…";
+  await postJSON("/api/calibrate", {});
+  const waitDone = async () => {
+    const res = await fetch("/status");
+    const s = await res.json();
     applyStatus(s);
-    $("btn-calibrate").textContent = "Calibrate";
-  });
+    if (s.calibrating) {
+      setTimeout(waitDone, 300);
+    } else {
+      $("btn-calibrate").disabled = false;
+      $("btn-calibrate").textContent = "Calibrate";
+    }
+  };
+  waitDone();
+});
 }
 
 // ---------------- Stimulation ----------------

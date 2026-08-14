@@ -66,6 +66,8 @@ class MiniscopeSystem:
         self.M_cam2led = None
         self.M_led2cam = None
         self.calibrated = False
+        self.calibration_requested = False
+        self.calibrating = False
 
         # Output MicroLED: "virtual" (solo preview browser) o "hardware"
         self.output_mode = "virtual"
@@ -369,6 +371,10 @@ class MiniscopeSystem:
                 self.calibrated = success
             return success
 
+    def request_calibration(self):
+        with self.lock:
+            self.calibration_requested = True
+
     #def set_output_mode(self, mode):
         #with self.lock:
             #self.output_mode = "hardware" if mode == "hardware" else "virtual"
@@ -397,6 +403,25 @@ class MiniscopeSystem:
     def _loop(self):
         while self._running:
             with self.lock:
+                if self.calibration_requested:
+                    self.calibration_requested = False
+                    self.calibrating = True
+                    try:
+                        if self.phantom_mode or self.cap is None:
+                            self._ensure_homography()
+                            self.calibrated = True
+                        else:
+                            M_cam2led, M_led2cam, success = self.calibrator.run_full_calibration(
+                                self.cap, self.jdb_win_name if self._hdmi_window_open else "MICROLED_DISPLAY_HDMI"
+                            )
+                            if M_cam2led is not None:
+                                self.M_cam2led = M_cam2led
+                                self.M_led2cam = M_led2cam
+                                self._update_cmos_radius()
+                                self.calibrated = success
+                    except Exception as e:
+                        print(f"[CALIBRATION ERROR] {e}")
+                    self.calibrating = False
                 self._ensure_homography()
                 gray = self.read_frame_gray()
                 cam_w, cam_h = self.cam_w, self.cam_h
@@ -531,6 +556,7 @@ class MiniscopeSystem:
                 "cam_index_used": int(getattr(self, "cam_index_used", -1)),
                 "cam_resolution_match": bool(getattr(self, "cam_resolution_match", False)),
                 "hdmi_window_open": bool(self._hdmi_window_open),
+                "calibrating": bool(getattr(self, "calibrating", False)),
             }
 
 
@@ -652,10 +678,8 @@ def toggle_freeze():
 
 @app.route("/api/calibrate", methods=["POST"])
 def calibrate():
-    success = system.run_calibration()
-    result = system.status_dict()
-    result["calibration_success"] = success
-    return jsonify(result)
+    system.request_calibration()
+    return jsonify(system.status_dict())
 
 
 @app.route("/api/reset_zoom", methods=["POST"])
