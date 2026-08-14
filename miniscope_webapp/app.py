@@ -399,6 +399,20 @@ class MiniscopeSystem:
             # La finestra cv2 viene creata/aggiornata solo dentro _loop(),
             # sempre sullo stesso thread, per evitare problemi HighGUI multi-thread su Windows.
 
+    def _ensure_hdmi_window(self):
+        if self._hdmi_window_open:
+            return True
+        try:
+            jdb_x, jdb_y, disp_w, disp_h = get_jdb_monitor_coords(jdb_monitor_index=1)
+            cv2.namedWindow(self.jdb_win_name, cv2.WINDOW_NORMAL)
+            cv2.moveWindow(self.jdb_win_name, jdb_x, jdb_y)
+            cv2.setWindowProperty(self.jdb_win_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
+            self._hdmi_window_open = True
+            return True
+        except Exception as e:
+            print(f"[HDMI ERROR] Creazione finestra fallita: {e}")
+            return False
+
     # ---------------- main processing loop ----------------
     def _loop(self):
         while self._running:
@@ -411,8 +425,9 @@ class MiniscopeSystem:
                             self._ensure_homography()
                             self.calibrated = True
                         else:
+                            self._ensure_hdmi_window()
                             M_cam2led, M_led2cam, success = self.calibrator.run_full_calibration(
-                                self.cap, self.jdb_win_name if self._hdmi_window_open else "MICROLED_DISPLAY_HDMI"
+                                self.cap, self.jdb_win_name
                             )
                             if M_cam2led is not None:
                                 self.M_cam2led = M_cam2led
