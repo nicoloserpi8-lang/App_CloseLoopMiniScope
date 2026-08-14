@@ -451,8 +451,8 @@ class MiniscopeSystem:
                     try:
                         cv2.imshow(self.jdb_win_name, jdb_frame)
                         cv2.waitKey(1)
-                    except Exception:
-                        pass
+                    except Exception as e:
+                        print(f"[HDMI ERROR] {e}")
 
                 ok1, buf1 = cv2.imencode(".jpg", display_canvas, [cv2.IMWRITE_JPEG_QUALITY, 80])
                 if ok1:
