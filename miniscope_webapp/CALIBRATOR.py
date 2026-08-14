@@ -112,6 +112,13 @@ class DualMicroLEDCalibrator:
             thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
 
+        print(f"[CALIB DEBUG] Contorni totali trovati: {len(contours)}")
+        areas = [cv2.contourArea(c) for c in contours]
+        print(f"[CALIB DEBUG] Aree dei contorni: {sorted(areas, reverse=True)[:10]}")
+        print(f"[CALIB DEBUG] Valore massimo canale blu nel frame: {gray.max()}, soglia usata: {threshold_val}")
+        cv2.imwrite("debug_calib_frame.jpg", frame)
+        cv2.imwrite("debug_calib_thresh.jpg", thresh)
+
         centers = []
         for cnt in contours:
             area = cv2.contourArea(cnt)
