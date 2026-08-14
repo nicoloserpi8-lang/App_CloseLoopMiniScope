@@ -481,7 +481,8 @@ class MiniscopeSystem:
                             self.output_mode = "virtual"
                     if self._hdmi_window_open:
                         try:
-                            cv2.imshow(self.jdb_win_name, jdb_frame)
+                            jdb_frame_rotated = cv2.rotate(jdb_frame, cv2.ROTATE_90_CLOCKWISE)  # NUOVO
+                            cv2.imshow(self.jdb_win_name, jdb_frame_rotated)
                             cv2.waitKey(1)
                         except Exception as e:
                             print(f"[HDMI ERROR] imshow fallito: {e}")
