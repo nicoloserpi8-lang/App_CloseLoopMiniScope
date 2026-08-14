@@ -530,7 +530,7 @@ class MiniscopeSystem:
                     pattern = np.zeros((self.optics.jdb_h_px, self.optics.jdb_w_px, 3), dtype=np.uint8)
                     if idx_to_show < 4:
                         pt = tuple(int(v) for v in self._manual_calib_led_pts[idx_to_show])
-                        cv2.circle(pattern, pt, 8, (255, 0, 0), -1)
+                        cv2.circle(pattern, pt, 10, (255, 0, 0), -1)
                     jdb_frame = pattern
                     self.shutter_status = f"Manual calibration: point {idx_to_show + 1}/4"
                 elif self.is_stimulating:
