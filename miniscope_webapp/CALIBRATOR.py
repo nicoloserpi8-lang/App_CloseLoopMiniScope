@@ -94,13 +94,15 @@ class DualMicroLEDCalibrator:
 
         return pattern, np.float32(points)
 
-    def detect_cam_points(self, frame, threshold_val=180):
+    def detect_cam_points(self, frame, threshold_val=100):
         """Detects bright calibration spot centroids on camera frame."""
-        gray = (
-            cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            if len(frame.shape) == 3
-            else frame
-        )
+        if len(frame.shape) == 3:
+            # I puntini di calibrazione sono blu puri: usiamo direttamente il
+            # canale blu invece della luminanza in scala di grigi, che li
+            # renderebbe quasi invisibili (il blu pesa solo ~11% nella luminanza).
+            gray = frame[:, :, 0]
+        else:
+            gray = frame
         blurred = cv2.GaussianBlur(gray, (9, 9), 2)
         _, thresh = cv2.threshold(
             blurred, threshold_val, 255, cv2.THRESH_BINARY
