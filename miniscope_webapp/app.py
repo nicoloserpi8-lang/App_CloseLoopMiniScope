@@ -1,14 +1,14 @@
 """
 NPN Miniscope - Web Control Interface
 ======================================
-Backend Flask che espone via browser lo stesso sistema di controllo
-closed-loop presente in MAIN.py, riusando senza modifiche i moduli:
+Flask backend that exposes via browser the same closed-loop control
+system present in MAIN.py, reusing without modification the modules:
 OPTICS_CONFIG, SHUTTER_CONTROL, CALIBRATOR, HARDWARE_UTILS.
 
-Avvio:
+Start:
     pip install -r requirements.txt
     python app.py
-Poi apri http://127.0.0.1:5000 nel browser.
+Then open http://127.0.0.1:5000 in your browser.
 """
 
 import base64
@@ -47,7 +47,7 @@ class MiniscopeSystem:
             self.optics.get_valid_fiber_mask()
         )
 
-        # ROI / selected neurons (x_cmos, y_cmos, raggio_px)
+        # ROI / selected neurons (x_cmos, y_cmos, radius_px)
         self.selected_rois = []
         self.target_microled_pixels = 120
         self.current_cmos_radius = 12
@@ -57,12 +57,12 @@ class MiniscopeSystem:
         self.zoom_center_x = None
         self.zoom_center_y = None
 
-        # Stimolazione
+        # Stimulation
         self.freq_hz = 0.10
         self.duty_cycle_pct = 50.0
         self.is_stimulating = False
 
-        # Calibrazione
+        # Calibration
         self.M_cam2led = None
         self.M_led2cam = None
         self.calibrated = False
@@ -74,12 +74,12 @@ class MiniscopeSystem:
         self.calibration_requested = False
         self.calibrating = False
 
-        # Output MicroLED: "virtual" (solo preview browser) o "hardware"
+        # MicroLED Output: "virtual" (browser preview only) or "hardware"
         self.output_mode = "virtual"
         self.jdb_win_name = "MICROLED_DISPLAY_HDMI"
         self._hdmi_window_open = False
 
-        # Frame correnti (JPEG bytes) condivisi tra thread di elaborazione e le route Flask
+        # Current frames (JPEG bytes) shared between processing thread and Flask routes
         self.latest_cmos_jpeg = None
         self.latest_jdb_jpeg = None
 
@@ -148,7 +148,7 @@ class MiniscopeSystem:
             self.zoom_center_x, self.zoom_center_y = None, None
 
     def _generate_phantom_frame(self):
-        """Genera un frame sintetico in stile CMOS con 'neuroni' luminosi, per demo senza hardware."""
+        """Generates a CMOS-style synthetic frame with glowing 'neurons', for demo without hardware."""
         t = time.time()
         img = np.zeros((self.cam_h, self.cam_w), dtype=np.uint8)
         noise = (np.random.default_rng().normal(6, 3, img.shape)).clip(0, 255)
@@ -259,17 +259,17 @@ class MiniscopeSystem:
             return img
         return cv2.resize(cropped, (cam_w, cam_h), interpolation=cv2.INTER_LINEAR)
 
-    # ---------------- actions (chiamate dalle route) ----------------
+    # ---------------- actions (called by routes) ----------------
     def add_roi(self, x_disp, y_disp):
         with self.lock:
             real_x, real_y = self.screen_to_cmos(x_disp, y_disp)
             real_x, real_y = int(real_x), int(real_y)
             if 0 <= real_x < self.cam_w and 0 <= real_y < self.cam_h:
-                # Usa sempre il raggio calcolato in base al target di pixel MicroLED
+                # Always use the calculated radius based on MicroLED pixel target
                 self.selected_rois.append((real_x, real_y, int(self.current_cmos_radius)))
 
     def add_roi_drag(self, x1_disp, y1_disp, x2_disp, y2_disp):
-        """Calcola il raggio in base al trascinamento per questa specifica ROI."""
+        """Calculates radius based on drag distance for this specific ROI."""
         with self.lock:
             cx, cy = self.screen_to_cmos(x1_disp, y1_disp)
             ex, ey = self.screen_to_cmos(x2_disp, y2_disp)
@@ -388,7 +388,7 @@ class MiniscopeSystem:
     def run_calibration(self):
         with self.lock:
             if self.phantom_mode or self.cap is None:
-                # In modalità phantom simuliamo una calibrazione riuscita con mapping di default
+                # In phantom mode, simulate successful calibration with default mapping
                 self._ensure_homography()
                 self.calibrated = True
                 return True
@@ -406,29 +406,11 @@ class MiniscopeSystem:
         with self.lock:
             self.calibration_requested = True
 
-    #def set_output_mode(self, mode):
-        #with self.lock:
-            #self.output_mode = "hardware" if mode == "hardware" else "virtual"
-            #print(
-                #f"[OUTPUT] Richiesta ricevuta: mode='{mode}' -> output_mode='{self.output_mode}', hdmi_gia_aperta={self._hdmi_window_open}")  # NUOVO
-            #if self.output_mode == "hardware" and not self._hdmi_window_open:
-                #try:
-                    #jdb_x, jdb_y, disp_w, disp_h = get_jdb_monitor_coords(jdb_monitor_index=1)
-                    #print(f"[OUTPUT] Monitor 2 rilevato: x={jdb_x}, y={jdb_y}, w={disp_w}, h={disp_h}")  # NUOVO
-                    #cv2.namedWindow(self.jdb_win_name, cv2.WINDOW_NORMAL)
-                    #cv2.moveWindow(self.jdb_win_name, jdb_x, jdb_y)
-                    #cv2.setWindowProperty(self.jdb_win_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
-                    #self._hdmi_window_open = True
-                    #print("[OUTPUT] Finestra HDMI aperta con successo")  # NUOVO
-                #except Exception as e:
-                    #print(f"[WARN] Impossibile aprire finestra HDMI reale: {e}")
-                    #self.output_mode = "virtual"
-
     def set_output_mode(self, mode):
         with self.lock:
             self.output_mode = "hardware" if mode == "hardware" else "virtual"
-            # La finestra cv2 viene creata/aggiornata solo dentro _loop(),
-            # sempre sullo stesso thread, per evitare problemi HighGUI multi-thread su Windows.
+            # The cv2 window is created/updated only inside _loop(),
+            # always on the same thread, to avoid multi-thread HighGUI issues on Windows.
 
     def _ensure_hdmi_window(self):
         if self._hdmi_window_open:
@@ -441,7 +423,7 @@ class MiniscopeSystem:
             self._hdmi_window_open = True
             return True
         except Exception as e:
-            print(f"[HDMI ERROR] Creazione finestra fallita: {e}")
+            print(f"[HDMI ERROR] Window creation failed: {e}")
             return False
 
     # ---------------- main processing loop ----------------
@@ -480,7 +462,7 @@ class MiniscopeSystem:
                 cam_w, cam_h = self.cam_w, self.cam_h
                 canvas = cv2.cvtColor(gray, cv2.COLOR_GRAY2BGR)
 
-                # contorno fibra ottica proiettato sul CMOS
+                # Optical fiber outline projected onto CMOS
                 cmos_fiber_mask = cv2.warpPerspective(self.jdb_fiber_mask, self.M_led2cam, (cam_w, cam_h))
                 contours, _ = cv2.findContours(cmos_fiber_mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
                 cv2.drawContours(canvas, contours, -1, (255, 200, 0), 2)
@@ -550,16 +532,6 @@ class MiniscopeSystem:
                     jdb_frame = self.frame_blue_only
                     self.shutter_status = "Blue only"
 
-                #if self.output_mode == "hardware" and self._hdmi_window_open:
-                    #if not getattr(self, "_hdmi_debug_printed", False):
-                        #print(f"[OUTPUT] Primo invio frame a schermo 2, shape={jdb_frame.shape}")  # NUOVO
-                        #self._hdmi_debug_printed = True
-                    #try:
-                        #cv2.imshow(self.jdb_win_name, jdb_frame)
-                        #cv2.waitKey(1)
-                    #except Exception as e:
-                        #print(f"[HDMI ERROR] {e}")
-
                 if self.output_mode == "hardware":
                     if not self._hdmi_window_open:
                         try:
@@ -568,17 +540,17 @@ class MiniscopeSystem:
                             cv2.moveWindow(self.jdb_win_name, jdb_x, jdb_y)
                             cv2.setWindowProperty(self.jdb_win_name, cv2.WND_PROP_FULLSCREEN, cv2.WINDOW_FULLSCREEN)
                             self._hdmi_window_open = True
-                            print(f"[OUTPUT] Finestra HDMI creata su schermo 2 (x={jdb_x}, y={jdb_y})")
+                            print(f"[OUTPUT] HDMI window created on screen 2 (x={jdb_x}, y={jdb_y})")
                         except Exception as e:
-                            print(f"[HDMI ERROR] Creazione finestra fallita: {e}")
+                            print(f"[HDMI ERROR] Window creation failed: {e}")
                             self.output_mode = "virtual"
                     if self._hdmi_window_open:
                         try:
-                            jdb_frame_rotated = cv2.rotate(jdb_frame, cv2.ROTATE_90_CLOCKWISE)  # NUOVO
+                            jdb_frame_rotated = cv2.rotate(jdb_frame, cv2.ROTATE_90_CLOCKWISE)
                             cv2.imshow(self.jdb_win_name, jdb_frame_rotated)
                             cv2.waitKey(1)
                         except Exception as e:
-                            print(f"[HDMI ERROR] imshow fallito: {e}")
+                            print(f"[HDMI ERROR] imshow failed: {e}")
 
                 ok1, buf1 = cv2.imencode(".jpg", display_canvas, [cv2.IMWRITE_JPEG_QUALITY, 80])
                 if ok1:
@@ -594,7 +566,6 @@ class MiniscopeSystem:
     def status_dict(self):
         with self.lock:
             return {
-
                 "mode": self.mode_name,
                 "phantom": bool(self.phantom_mode),
                 "cam_w": int(self.cam_w),
@@ -775,40 +746,25 @@ def pan():
 @app.route("/api/set_output", methods=["POST"])
 def set_output():
     data = request.get_json()
-    system.set_output_mode(data["mode"])
+    system.set_output_mode(data.get("mode", "virtual"))
     return jsonify(system.status_dict())
 
 
-@app.route("/api/set_camera_mode", methods=["POST"])
-def set_camera_mode():
+@app.route("/api/set_mode", methods=["POST"])
+def set_mode():
     data = request.get_json()
-    system.set_camera_mode(data["mode"])
+    system.set_camera_mode(data.get("mode", "PC"))
     return jsonify(system.status_dict())
 
-@app.route("/api/monitors")
-def monitors():
-    try:
-        from screeninfo import get_monitors
-        mons = get_monitors()
-        return jsonify({
-            "ok": True,
-            "count": len(mons),
-            "monitors": [
-                {"index": i, "width": m.width, "height": m.height, "x": m.x, "y": m.y, "primary": m.is_primary}
-                for i, m in enumerate(mons)
-            ],
-        })
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)})
 
-@app.route("/api/start_manual_calibration", methods=["POST"])
-def start_manual_calibration():
+@app.route("/api/start_manual_calib", methods=["POST"])
+def start_manual_calib():
     system.start_manual_calibration()
     return jsonify(system.status_dict())
 
 
-@app.route("/api/cancel_manual_calibration", methods=["POST"])
-def cancel_manual_calibration():
+@app.route("/api/cancel_manual_calib", methods=["POST"])
+def cancel_manual_calib():
     system.cancel_manual_calibration()
     return jsonify(system.status_dict())
 
@@ -819,5 +775,6 @@ def add_manual_calib_point():
     system.add_manual_calib_point(float(data["x"]), float(data["y"]))
     return jsonify(system.status_dict())
 
+
 if __name__ == "__main__":
-    app.run(host="127.0.0.1", port=5000, debug=False, threaded=True)
+    app.run(host="0.0.0.0", port=5000, debug=False, threaded=True)

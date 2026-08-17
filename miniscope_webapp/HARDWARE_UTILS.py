@@ -3,7 +3,7 @@ import cv2
 from screeninfo import get_monitors
 
 
-def find_miniscope_cam_index_smart(max_indici=6, mode="PC"):
+def find_miniscope_cam_index_smart(max_indices=6, mode="PC"):
     """Scans DirectShow ports to identify either standard PC webcam (640x480)
 
     or native Miniscope V4 sensor (608x608) based on mode.
@@ -15,7 +15,7 @@ def find_miniscope_cam_index_smart(max_indici=6, mode="PC"):
         f"\n[HARDWARE] Searching for camera via DirectShow (Target: {mode} Mode - {target_w}x{target_h})..."
     )
 
-    for idx in range(max_indici):
+    for idx in range(max_indices):
         cap = cv2.VideoCapture(idx, cv2.CAP_DSHOW)
         if cap.isOpened():
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, target_w)

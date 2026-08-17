@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="it">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <title>NPN Miniscope</title>
@@ -146,7 +146,7 @@
 
     </div>
 
-    <!-- AREA VIDEO CMOS -->
+    <!-- CMOS VIDEO AREA -->
     <div class="video-area">
         <div class="video-area-square">
             <img id="cmos-img" src="/video_feed" alt="CMOS live feed">
@@ -158,9 +158,9 @@
   <div class="statusbar">
     <div class="status-left" id="status-left">Virtual Miniscope (phantom) &mdash; neurons: 0 &mdash; active MicroLED pixels: 0 / 0</div>
     <div class="status-right">
-      <span class="hint">Click = raggio auto &middot; Trascina = raggio manuale &middot; Tasto destro = elimina &middot; Rotella = zoom</span>
+      <span class="hint">Click = auto radius &middot; Drag = manual radius &middot; Right click = delete &middot; Wheel = zoom</span>
 
-      <span id="radius-display" style="font-weight: bold; padding: 0 6px; color: #00ff00;">Raggio CMOS: -- px</span>
+      <span id="radius-display" style="font-weight: bold; padding: 0 6px; color: #00ff00;">CMOS Radius: -- px</span>
 
       <button id="btn-freeze" class="btn small">Freeze</button>
       <button id="btn-reset-zoom" class="btn small">Reset zoom</button>
@@ -168,7 +168,7 @@
     </div>
   </div>
 
-  <!-- UNICO SCRIPT PER LA GESTIONE COMPLETA DELL'INTERFACCIA -->
+  <!-- SINGLE SCRIPT FOR FULL INTERFACE MANAGEMENT -->
   <script src="{{ url_for('static', filename='app.js') }}"></script>
 </body>
 </html>

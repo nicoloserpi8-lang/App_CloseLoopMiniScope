@@ -97,9 +97,9 @@ class DualMicroLEDCalibrator:
     def detect_cam_points(self, frame, threshold_val=100):
         """Detects bright calibration spot centroids on camera frame."""
         if len(frame.shape) == 3:
-            # I puntini di calibrazione sono blu puri: usiamo direttamente il
-            # canale blu invece della luminanza in scala di grigi, che li
-            # renderebbe quasi invisibili (il blu pesa solo ~11% nella luminanza).
+            # Calibration dots are pure blue: we directly use the blue channel
+            # instead of grayscale luminance, which would make them almost
+            # invisible (blue accounts for only ~11% of luminance).
             gray = frame[:, :, 0]
         else:
             gray = frame
@@ -112,10 +112,10 @@ class DualMicroLEDCalibrator:
             thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE
         )
 
-        print(f"[CALIB DEBUG] Contorni totali trovati: {len(contours)}")
+        print(f"[CALIB DEBUG] Total contours found: {len(contours)}")
         areas = [cv2.contourArea(c) for c in contours]
-        print(f"[CALIB DEBUG] Aree dei contorni: {sorted(areas, reverse=True)[:10]}")
-        print(f"[CALIB DEBUG] Valore massimo canale blu nel frame: {gray.max()}, soglia usata: {threshold_val}")
+        print(f"[CALIB DEBUG] Contour areas: {sorted(areas, reverse=True)[:10]}")
+        print(f"[CALIB DEBUG] Maximum blue channel value in frame: {gray.max()}, threshold used: {threshold_val}")
         cv2.imwrite("debug_calib_frame.jpg", frame)
         cv2.imwrite("debug_calib_thresh.jpg", thresh)
 

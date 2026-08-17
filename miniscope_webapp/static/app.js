@@ -14,15 +14,15 @@ function applyStatus(s) {
   manualCalibActive = s.manual_calib_active;
   $("btn-cancel-manual-calib").style.display = manualCalibActive ? "inline-block" : "none";
   $("manual-calib-status").textContent = manualCalibActive
-  ? `Clicca il punto ${s.manual_calib_points_count + 1} di 4 sul video`
+  ? `Click point ${s.manual_calib_points_count + 1} of 4 on the video`
   : "";
   let camLine;
   if (s.phantom) {
-    camLine = `⚠️ Nessuna camera reale trovata (indice tentato: ${s.cam_index_used}) — modalità PHANTOM attiva.`;
+    camLine = `⚠️ No real camera found (attempted index: ${s.cam_index_used}) — PHANTOM mode active.`;
   } else if (!s.cam_resolution_match) {
-    camLine = `⚠️ Camera trovata all'indice ${s.cam_index_used} ma risoluzione ${s.cam_w}x${s.cam_h} inattesa.`;
+    camLine = `⚠️ Camera found at index ${s.cam_index_used} but resolution ${s.cam_w}x${s.cam_h} is unexpected.`;
   } else {
-    camLine = `✅ Camera OK — indice ${s.cam_index_used}, risoluzione ${s.cam_w}x${s.cam_h}.`;
+    camLine = `✅ Camera OK — index ${s.cam_index_used}, resolution ${s.cam_w}x${s.cam_h}.`;
   }
   document.getElementById("cam-status-line").textContent = camLine;
   if (document.activeElement !== document.getElementById("camera-mode-select"))
@@ -66,7 +66,7 @@ function applyStatus(s) {
       `${modeLabel}${frozenTag} — neurons: ${s.neurons} — active MicroLED pixels: ${s.active_led_pixels} / ${s.pixels_inside_fiber}`;
   }
 
- // Aggiorna l'indicatore in base al valore calcolato dal backend
+  // Update indicator based on backend calculated value
   const radiusDisplay = $("radius-display");
   if (radiusDisplay) {
     const r = s.current_cmos_radius || 0;
@@ -74,13 +74,13 @@ function applyStatus(s) {
     const areaCmos = Math.round(Math.PI * r * r);
 
     if (r > 0) {
-      radiusDisplay.textContent = `Raggio CMOS: ${r} px (~${areaCmos} px²) [Target: ${targetPx} px]`;
+      radiusDisplay.textContent = `CMOS Radius: ${r} px (~${areaCmos} px²) [Target: ${targetPx} px]`;
     } else {
       radiusDisplay.textContent = `Target: ${targetPx} MicroLED px`;
     }
   }
 
-  // Non sovrascrivere i campi mentre l'utente li digita
+  // Do not overwrite fields while the user is typing in them
   if (document.activeElement !== $("l1") && $("l1")) $("l1").value = s.l1;
   if (document.activeElement !== $("l2") && $("l2")) $("l2").value = s.l2;
   if (document.activeElement !== $("fiber") && $("fiber")) $("fiber").value = s.fiber_core_um;
@@ -96,7 +96,7 @@ async function refreshStatus() {
     const s = await res.json();
     applyStatus(s);
   } catch (e) {
-    // Server non ancora pronto o offline
+    // Server not ready yet or offline
   }
 }
 setInterval(refreshStatus, 500);
@@ -114,10 +114,10 @@ document.getElementById("btn-check-monitors").addEventListener("click", async ()
   const res = await fetch("/api/monitors");
   const data = await res.json();
   const el = document.getElementById("monitors-status");
-  if (!data.ok) { el.textContent = `Errore: ${data.error}`; return; }
+  if (!data.ok) { el.textContent = `Error: ${data.error}`; return; }
   el.textContent = data.count < 2
-    ? `⚠️ Solo ${data.count} monitor rilevato/i.`
-    : `✅ ${data.count} monitor rilevati.`;
+    ? `⚠️ Only ${data.count} monitor(s) detected.`
+    : `✅ ${data.count} monitors detected.`;
 });
 
 // ---------------- Optics & Calibration ----------------
@@ -233,9 +233,9 @@ function clearPreviewCircle() {
   if (roiPreview) roiPreview.innerHTML = "";
 }
 
-// Evento Mousedown RIVATTIVATO
+// Mousedown Event REACTIVATED
 if (cmosImg) {
-  cmosImg.addEventListener("dragstart", (e) => e.preventDefault()); // Previene il drag nativo
+  cmosImg.addEventListener("dragstart", (e) => e.preventDefault()); // Prevents native dragging
 
   cmosImg.addEventListener("mousedown", (evt) => {
     if (manualCalibActive) return;
@@ -308,7 +308,7 @@ window.addEventListener("mouseup", async (evt) => {
   dragStartImg = null;
 });
 
-// ---------------- Pan (Shift + Click oppure Tasto Centrale) ----------------
+// ---------------- Pan (Shift + Click or Middle Mouse Button) ----------------
 let isPanning = false;
 let panStart = null;
 if (cmosImg) {
@@ -336,7 +336,7 @@ if ($("btn-reset-zoom")) {
   });
 }
 
-// ---------------- Freeze & Raggio ----------------
+// ---------------- Freeze & Radius ----------------
 if ($("btn-freeze")) {
   $("btn-freeze").addEventListener("click", async () => {
     const s = await postJSON("/api/toggle_freeze", {});
@@ -351,4 +351,3 @@ document.addEventListener("keydown", async (evt) => {
     applyStatus(s);
   }
 });
-
